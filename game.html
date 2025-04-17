@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Block Blast: Purple Edition</title>
+  <style>
+
+    body {
+      background-color: #f5f0fa;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #5e4b8b;
+    }
+
+    #game-board {
+      display: grid;
+      grid-template-columns: repeat(10, 40px);
+      grid-template-rows: repeat(10, 40px);
+      gap: 2px;
+      margin-bottom: 30px;
+    }
+
+    .cell {
+      width: 40px;
+      height: 40px;
+      background-color: #ddd0f2;
+      border: 1px solid #c4b0e2;
+    }
+
+    .filled {
+      background-color: #7e5bef;
+    }
+
+    #pieces {
+      display: flex;
+      gap: 20px;
+    }
+
+    .piece {
+      display: grid;
+      grid-template-columns: repeat(3, 40px);
+      grid-template-rows: repeat(3, 40px);
+      gap: 2px;
+      cursor: grab;
+    }
+
+    .block {
+      width: 40px;
+      height: 40px;
+      background-color: #a18bd8;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+    <a href="index.html" id="top">Back to Main Page</a>
+  <h1>Play a Game!</h1><br>
+  <h2>Drag the pieces to get rid of a row!</h2>
+  <div id="game-board"></div>
+  <div id="pieces"></div>
+
+  <script>
+    const board = document.getElementById('game-board');
+    const piecesContainer = document.getElementById('pieces');
+    const boardSize = 10;
+    const boardState = [];
+
+    // Create game board
+    for (let i = 0; i < boardSize * boardSize; i++) {
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
+      cell.dataset.index = i;
+      board.appendChild(cell);
+      boardState.push(0);
+    }
+
+    // Define a simple L-shaped piece
+    const pieceShapes = [
+      [0, 1, 2, 5], // L-shape
+      [0, 1, 4, 5], // square
+      [0, 1, 2],    // line
+    ];
+
+    function createPiece(shape, id) {
+      const piece = document.createElement('div');
+      piece.classList.add('piece');
+      piece.draggable = true;
+      piece.dataset.shape = JSON.stringify(shape);
+
+      for (let i = 0; i < 9; i++) {
+        const block = document.createElement('div');
+        if (shape.includes(i)) {
+          block.classList.add('block');
+        }
+        piece.appendChild(block);
+      }
+
+      piece.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('shape', JSON.stringify(shape));
+      });
+
+      piecesContainer.appendChild(piece);
+    }
+
+    pieceShapes.forEach((shape, i) => createPiece(shape, i));
+
+    board.addEventListener('dragover', e => e.preventDefault());
+    board.addEventListener('drop', e => {
+      const shape = JSON.parse(e.dataTransfer.getData('shape'));
+      const target = e.target.closest('.cell');
+      if (!target) return;
+
+      const startIndex = parseInt(target.dataset.index);
+      const startRow = Math.floor(startIndex / boardSize);
+      const startCol = startIndex % boardSize;
+
+      const offsets = shape.map(i => [Math.floor(i / 3), i % 3]);
+
+      // Check if shape fits
+      let fits = true;
+      const indices = offsets.map(([r, c]) => {
+        const row = startRow + r;
+        const col = startCol + c;
+        if (row >= boardSize || col >= boardSize) {
+          fits = false;
+          return null;
+        }
+        const idx = row * boardSize + col;
+        if (boardState[idx] === 1) {
+          fits = false;
+        }
+        return idx;
+      });
+
+      if (!fits) return;
+
+      // Place the shape
+      indices.forEach(idx => {
+        boardState[idx] = 1;
+        board.children[idx].classList.add('filled');
+      });
+
+      // Remove used piece
+      piecesContainer.innerHTML = '';
+      pieceShapes.forEach((shape, i) => createPiece(shape, i));
+    });
+  </script>
+</body>
+</html>
